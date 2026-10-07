@@ -354,9 +354,7 @@ function aiHeaders(config: AiConfig, contentType?: string) {
 }
 
 function geminiBaseUrl(config: Pick<AiConfig, "baseUrl">) {
-    const normalizedBaseUrl = config.baseUrl.trim().replace(/\/+$/, "");
-    const lowerBaseUrl = normalizedBaseUrl.toLowerCase();
-    return lowerBaseUrl.endsWith("/v1") || lowerBaseUrl.endsWith("/v1beta") ? normalizedBaseUrl : `${normalizedBaseUrl}/v1beta`;
+    return config.baseUrl.trim().replace(/\/+$/, "");
 }
 
 function geminiModelName(model: string) {
@@ -917,7 +915,7 @@ export async function fetchChannelModels(channel: ModelChannel) {
 }
 
 const defaultGeminiConfig: Pick<AiConfig, "baseUrl" | "apiKey" | "apiFormat" | "model" | "systemPrompt"> = {
-    baseUrl: "https://generativelanguage.googleapis.com",
+    baseUrl: "https://generativelanguage.googleapis.com/v1beta",
     apiKey: "",
     apiFormat: "gemini",
     model: "",

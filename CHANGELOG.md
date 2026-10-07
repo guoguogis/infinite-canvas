@@ -2,6 +2,21 @@
 
 ## Unreleased
 
++ [调整] 默认渠道配置全部清空：不再内置任何渠道、模型和 API Key，渠道列表初始为空，全部由用户自行添加或通过配置文件导入。
++ [调整] 渠道 Base URL 改为由用户完整填写，不再自动追加 `/v1`；内置调用、调用脚本和默认模板一律按填写的地址拼接资源路径，Gemini 的 `/v1beta` 同样不再自动补全。
++ [修复] 无渠道配置时不再自动生成一个 OpenAI 默认渠道，渠道列表可以保持为空。
++ [修复] 接口返回 404 时的提示不再直接断言「接口地址不存在」，改为同时提示模型名、API Key 和地址三种可能。
++ [优化] 火山方舟 Seedream 调用脚本改为透出接口返回的真实原因，内容策略拦截（如输出图片涉及版权限制）和尺寸超限不再只显示 HTTP 状态码。
++ [新增] 新增 heyroute.ai 视频调用脚本，按该服务要求改用 JSON 创建任务（`ratio`、`resolution`、`duration`），轮询与下载沿用 `/videos/{task_id}` 和 `/videos/{task_id}/content`，轮询间隔 15 秒、超时 30 分钟。
++ [新增] 新增阿里云 happyhorse 视频调用脚本，按 DashScope 原生异步协议创建任务（需 `X-DashScope-Async: enable`，请求体为 `input.prompt` + `parameters`）并轮询 `/api/v1/tasks/{task_id}`，轮询间隔 10 秒、超时 30 分钟。
++ [修复] Meta 视频调用脚本的参考图按模型区分：MiniMax-H3 只接受 1 张，seedance 系列可传多张但每张必须声明 `first_frame` / `last_frame` / `reference_image` 用途。
++ [修复] Meta 视频调用脚本按实测修正分辨率白名单（`seedance-2.0-mini` 不支持 1080p），并把时长封顶到服务端要求的 4–15 秒整数。
++ [修复] 阿里云万相生图按模型封顶分辨率：`wan2.7-image` 只支持 `1K`/`2K`，`wan2.7-image-pro` 仅在无参考图的文生图场景支持 `4K`，超出时不再发出模型不认的档位。
++ [新增] 新增阿里云万相图像调用脚本，按 DashScope 原生 `multimodal-generation` 协议发送 `input.messages`（`text` + 参考图 `image`）与 `parameters`，并把应用的像素尺寸换算成 `1K`/`2K`/`4K` 预设。
++ [修复] 阿里云渠道的 Base URL 只填 `/compatible-mode/v1` 一个地址即可：调用脚本会自行去掉该后缀再拼 DashScope 原生 `/api/v1` 路径，不再是「文字语音走兼容接口、图片视频走原生接口」需要拆成两个渠道。
++ [新增] 新增 88api 视频调用脚本，该站把 MiniMax 视频模型放在 `chat/completions` 上，脚本按此提交并从回复文本中取出视频地址。
++ [修复] 阿里云 `qwen-image-3.0-pro` 改用 DashScope 原生 `multimodal-generation` 路径，把尺寸改成该端点要求的 `<宽>*<高>` 格式，并恢复图生图支持：发到 `/compatible-mode/v1/images/generations` 会返回 `url error`，传 `1K` 预设或 `1024x1024` 会返回 `Expected format: '<width>*<height>'`。
+
 ## v0.19.0 - 2026-09-16
 
 + [优化] 画布图片、元素列表、节点参考栏、资产卡片和生图历史改用 WebP 缩略图渲染，避免反复解码原图。

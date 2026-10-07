@@ -230,8 +230,8 @@ export function getPluginTemplates(): Record<ModelCapability, PluginTemplate[]> 
             label: i18n.t("modelPlugin.templates.openai"),
             script: `/**
  * OpenAI image generation and editing.
- * Text-to-image uses POST /v1/images/generations (JSON) when images is empty.
- * Image editing uses POST /v1/images/edits (multipart) when images has data URLs.
+ * Text-to-image uses POST {baseUrl}/images/generations (JSON) when images is empty.
+ * Image editing uses POST {baseUrl}/images/edits (multipart) when images has data URLs.
  * @param {string} prompt
  * @param {string[]} images - reference images as data URLs; empty for text-to-image
  * @param {object} params
@@ -242,7 +242,7 @@ export function getPluginTemplates(): Record<ModelCapability, PluginTemplate[]> 
  * @param {string} model
  * @param {string} baseUrl
  * @param {string} apiKey
- * @param {function} request - raw HTTP helper; relative urls join baseUrl without /v1
+ * @param {function} request - raw HTTP helper; relative urls join baseUrl as-is
  * @returns {Promise<string[]>} image URLs or data URLs
  */
 async function generateImage({
@@ -262,7 +262,7 @@ async function generateImage({
   if (images.length === 0) {
     const data = await request({
       method: "post",
-      url: \`\${baseUrl}/v1/images/generations\`,
+      url: \`\${baseUrl}/images/generations\`,
       headers: {
         "Content-Type": "application/json",
         Authorization: \`Bearer \${apiKey}\`,
@@ -298,7 +298,7 @@ async function generateImage({
   }
   const edited = await request({
     method: "post",
-    url: \`\${baseUrl}/v1/images/edits\`,
+    url: \`\${baseUrl}/images/edits\`,
     headers: {
       Authorization: \`Bearer \${apiKey}\`,
     },
@@ -390,7 +390,7 @@ async function generateImage({
   for (let i = 0; i < n; i++) {
     const data = await request({
       method: "post",
-      url: \`\${baseUrl}/v1beta/models/\${model}:generateContent\`,
+      url: \`\${baseUrl}/models/\${model}:generateContent\`,
       headers: {
         "Content-Type": "application/json",
         "x-goog-api-key": apiKey,
@@ -438,7 +438,7 @@ return await generateImage({
         {
             label: i18n.t("modelPlugin.templates.openai"),
             script: `/**
- * OpenAI-compatible video: POST /v1/videos (multipart), then poll GET /v1/videos/{id}.
+ * OpenAI-compatible video: POST {baseUrl}/videos (multipart), then poll GET {baseUrl}/videos/{id}.
  * Do not set Content-Type on FormData; the browser adds the boundary.
  * @param {string} prompt
  * @param {string[]} images - reference images as data URLs
@@ -510,7 +510,7 @@ async function generateVideo({
   };
   const task = await request({
     method: "post",
-    url: \`\${baseUrl}/v1/videos\`,
+    url: \`\${baseUrl}/videos\`,
     headers,
     data: form,
   });
@@ -519,7 +519,7 @@ async function generateVideo({
     async () => {
       const state = await request({
         method: "get",
-        url: \`\${baseUrl}/v1/videos/\${task.id}\`,
+        url: \`\${baseUrl}/videos/\${task.id}\`,
         headers,
       });
       if (state.status === "failed" || state.status === "cancelled") {
@@ -531,7 +531,7 @@ async function generateVideo({
       if (state.status === "completed") {
         return await request({
           method: "get",
-          url: \`\${baseUrl}/v1/videos/\${task.id}/content\`,
+          url: \`\${baseUrl}/videos/\${task.id}/content\`,
           headers,
           responseType: "blob",
         });
@@ -668,7 +668,7 @@ async function generateVideo({
   };
   const op = await request({
     method: "post",
-    url: \`\${baseUrl}/v1beta/models/\${model}:predictLongRunning\`,
+    url: \`\${baseUrl}/models/\${model}:predictLongRunning\`,
     headers,
     data: {
       instances: [instance],
@@ -685,7 +685,7 @@ async function generateVideo({
   return await poll(
     () => request({
       method: "get",
-      url: \`\${baseUrl}/v1beta/\${op.name}\`,
+      url: \`\${baseUrl}/\${op.name}\`,
       headers,
     }),
     (state) => {
@@ -721,7 +721,7 @@ return await generateVideo({
         {
             label: i18n.t("modelPlugin.templates.openai"),
             script: `/**
- * OpenAI speech: POST /v1/audio/speech.
+ * OpenAI speech: POST {baseUrl}/audio/speech.
  * @param {string} prompt - text to speak
  * @param {object} params
  * @param {string} params.voice
@@ -749,7 +749,7 @@ async function generateAudio({
 }) {
   return await request({
     method: "post",
-    url: \`\${baseUrl}/v1/audio/speech\`,
+    url: \`\${baseUrl}/audio/speech\`,
     headers: {
       "Content-Type": "application/json",
       Authorization: \`Bearer \${apiKey}\`,
@@ -801,7 +801,7 @@ async function generateAudio({
 }) {
   const data = await request({
     method: "post",
-    url: \`\${baseUrl}/v1beta/models/\${model}:generateContent\`,
+    url: \`\${baseUrl}/models/\${model}:generateContent\`,
     headers: {
       "Content-Type": "application/json",
       "x-goog-api-key": apiKey,
@@ -849,7 +849,7 @@ return await generateAudio({
         {
             label: i18n.t("modelPlugin.templates.openai"),
             script: `/**
- * OpenAI text: POST /v1/responses.
+ * OpenAI text: POST {baseUrl}/responses.
  * @param {{role: string, content: string}[]} messages - includes the system message when present
  * @param {string} model
  * @param {string} baseUrl
@@ -879,7 +879,7 @@ async function generateText({
   }
   const data = await request({
     method: "post",
-    url: \`\${baseUrl}/v1/responses\`,
+    url: \`\${baseUrl}/responses\`,
     headers: {
       "Content-Type": "application/json",
       Authorization: \`Bearer \${apiKey}\`,
@@ -944,7 +944,7 @@ async function generateText({
   }
   const data = await request({
     method: "post",
-    url: \`\${baseUrl}/v1beta/models/\${model}:generateContent\`,
+    url: \`\${baseUrl}/models/\${model}:generateContent\`,
     headers: {
       "Content-Type": "application/json",
       "x-goog-api-key": apiKey,

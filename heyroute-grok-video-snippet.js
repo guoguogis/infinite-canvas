@@ -1,0 +1,17 @@
+(() => {
+  const k = 'infinite-canvas:ai_config_store';
+  const store = JSON.parse(localStorage.getItem(k));
+  const cfg = store.state.config;
+  const ch = (cfg.channels || []).find(c => String(c.baseUrl || '').includes('heyroute.ai'));
+  if (!ch) { console.warn('没找到 heyroute 渠道，请先建好渠道再跑'); return; }
+  const SCRIPT = "\nconst RESOLUTIONS = [\"480p\", \"720p\", \"1080p\"];\n\n// heyroute 用错误码承载失败原因，axios 会直接抛错，这里统一取出响应体里的真实信息。\nasync function call(options) {\n    try {\n        return await request(options);\n    } catch (error) {\n        const body = error && error.response && error.response.data;\n        const detail = body && (body.error || body);\n        throw new Error((detail && (detail.message || detail.code)) || (error && error.message) || \"heyroute 请求失败\");\n    }\n}\n\nconst wanted = String(params.resolution || \"\").trim().toLowerCase();\nconst pixels = /^(\\d+)x(\\d+)$/.exec(String(params.size || \"\"));\nconst target = /^\\d+p$/.test(wanted)\n    ? Number(wanted.replace(/p$/, \"\"))\n    : pixels ? Math.min(Number(pixels[1]), Number(pixels[2])) : 720;\nconst resolution = RESOLUTIONS.reduce((best, value) => (Math.abs(Number(value.replace(/p$/, \"\")) - target) < Math.abs(Number(best.replace(/p$/, \"\")) - target) ? value : best), RESOLUTIONS[0]);\n\nconst headers = { \"Content-Type\": \"application/json\", Authorization: `Bearer ${apiKey}` };\nconst created = await call({\n    method: \"post\",\n    url: `${baseUrl}/videos`,\n    headers,\n    data: {\n        model: model,\n        prompt: prompt || \"\",\n        ratio: params.ratio || \"16:9\",\n        resolution: resolution,\n        duration: Number(params.seconds) || 15,\n    },\n});\n\nconst taskId = created && (created.id || created.task_id || created.taskId);\nif (!taskId) throw new Error(\"视频接口未返回任务 ID\");\n\nreturn await poll(\n    async () => {\n        const state = await call({ method: \"get\", url: `${baseUrl}/videos/${encodeURIComponent(taskId)}`, headers });\n        const status = state && state.status;\n        if (status === \"failed\" || status === \"cancelled\") {\n            const detail = state && (state.error || state.fail_code);\n            throw new Error((detail && (detail.message || detail)) || \"视频生成失败\");\n        }\n        // 直接把地址给出来时不必再下载一次。\n        const url = state && (state.video_url || state.url || (state.output && state.output.url));\n        if (url) return { url: url };\n        if (status === \"completed\") {\n            return await call({ method: \"get\", url: `${baseUrl}/videos/${encodeURIComponent(taskId)}/content`, headers, responseType: \"blob\" });\n        }\n        return null;\n    },\n    (result) => result,\n    { intervalMs: 15000, timeoutMs: 1800000 },\n);\n";
+  ch.models = ch.models || [];
+  const hit = ch.models.find(m => m.name === 'grok-video');
+  if (hit) { hit.capability = 'video'; hit.script = SCRIPT; }
+  else ch.models.push({ name: 'grok-video', capability: 'video', script: SCRIPT });
+  cfg.videoModel = ch.id + '::grok-video';
+  cfg.models = cfg.channels.flatMap(c => (c.models || []).map(m => c.id + '::' + m.name));
+  localStorage.setItem(k, JSON.stringify(store));
+  console.log('渠道:', ch.id, '| 模型数:', ch.models.length, '| videoModel:', cfg.videoModel);
+  location.reload();
+})();
